@@ -11,7 +11,7 @@
 # performance TODOs:
 # - Multiple elements per thread 
 # - Use warpSize instead of hardcoding and move to GPUArrays
-function partial_scan(op::Function, output::CuDeviceArray{T}, input::CuDeviceArray, aggregates::CuDeviceArray,
+function partial_scan(op::Function, output::CuDeviceArray{T}, input, aggregates,
                         Rdim, Rpre, Rpost, Rother, neutral) where {T}
     threads = blockDim().x
     thread = threadIdx().x
@@ -39,9 +39,9 @@ function partial_scan(op::Function, output::CuDeviceArray{T}, input::CuDeviceArr
     end
 
     # load input into shared memory (apply `op` to have the correct type)
-    value = op(neutral, neutral)
+    value = neutral
     if tid <= length(Rdim)
-        @inbounds value = input[Ipre, tid, Ipost]
+        @inbounds value = convert(T, input[Ipre, tid, Ipost])
     else
         return
     end
@@ -66,8 +66,7 @@ function partial_scan(op::Function, output::CuDeviceArray{T}, input::CuDeviceArr
 
     # Warp 0 computes intermediate sums
     if warp_id == 0
-        warp_sum = op(neutral, neutral)
-
+        warp_sum = neutral
         if lane_id < warps
             warp_sum = temp[lane_id + 1]
         end
@@ -82,7 +81,7 @@ function partial_scan(op::Function, output::CuDeviceArray{T}, input::CuDeviceArr
         end
         warp_sum = shfl_up_sync(mask, warp_sum, 1)
         if lane_id == 0
-            warp_sum = op(neutral, neutral)
+            warp_sum = neutral
         end
 
         if lane_id < warps
@@ -92,23 +91,20 @@ function partial_scan(op::Function, output::CuDeviceArray{T}, input::CuDeviceArr
     end
     sync_threads()
 
-
-
     @inbounds begin
         value = op(temp[warp_id + 1], value)
         output[Ipre, tid, Ipost] = value
         if threadIdx().x == blockDim().x || tid == length(Rdim)
             aggregates[Ipre, blockIdx().x, Ipost] = value
         end
+        return
     end
-
-    return
 end
 
 # aggregate the result of a partial scan by applying preceding block aggregates
-function aggregate_partial_scan(op::Function, output::CuDeviceArray,
-                                aggregates::CuDeviceArray,
-                                Rdim, Rpre, Rpost, Rother, init, neutral, ::Val{inclusive}=Val{true}) where inclusive
+function aggregate_partial_scan(op::Function, output::CuDeviceArray, aggregates,
+                                Rdim, Rpre, Rpost, Rother, init, neutral, 
+                                ::Val{inclusive}=Val{true}) where inclusive
 
     # iterate the main dimension using threads and the first block dimension
     tid = (blockIdx().x-1) * blockDim().x + threadIdx().x
@@ -135,10 +131,8 @@ function aggregate_partial_scan(op::Function, output::CuDeviceArray,
         end
         if inclusive
             output[Ipre, tid, Ipost] = op(value, output[Ipre, tid, Ipost])
-        else
-            if threadIdx().x != 1
-                value = op(value, output[Ipre, tid - 1, Ipost])
-            end
+        elseif threadIdx().x != 1
+            value = op(value, output[Ipre, tid - 1, Ipost])
             output[Ipre, tid, Ipost] = value
         end
     end
@@ -149,8 +143,8 @@ end
 ## COV_EXCL_STOP
 
 function scan!(f::Function, output::CuArray{T}, input::CuArray;
-    inclusive = true, dims::Integer = 1, init=nothing, 
-    neutral=GPUArrays.neutral_element(f, T)) where {T}
+                inclusive = true, dims::Integer = 1, init::Union{Nothing, T}=nothing, 
+                neutral=GPUArrays.neutral_element(f, T)) where {T}
     dims > 0 || throw(ArgumentError("dims must be a positive integer"))
     inds_t = axes(input)
     axes(output) == inds_t || throw(DimensionMismatch("shape of B must match A"))
@@ -167,12 +161,11 @@ function scan!(f::Function, output::CuArray{T}, input::CuArray;
     Rpost = CartesianIndices(size(input)[dims+1:end])
     Rother = CartesianIndices((length(Rpre), length(Rpost)))
 
-    elementsPerThread = 1
-    threadsPerBlock = 256;
+    threads_per_block = 256;
 
-    #round threads to neareRst multiple of 32temp[warp_id + 1]
+    # round threads up to the nearest multiple of 32
     threads = ((length(Rdim)-1)÷32+1)*32
-    blocks_x = (threads - 1) ÷ threadsPerBlock + 1 
+    blocks_x = (threads - 1) ÷ threads_per_block + 1 
 
     #Determine Grid Dims
     blocks_others = (length(Rpre), length(Rpost))
@@ -184,17 +177,18 @@ function scan!(f::Function, output::CuArray{T}, input::CuArray;
     # Compute partial scan
     args = (f, output, input, aggregates, Rdim, Rpre, Rpost, Rother, neutral)
     block_dims = (blocks_x, blocks_others...)
+    sz = sizeof(T)*threads_per_block
 
-    @cuda(threads=threadsPerBlock, blocks=block_dims, shmem =sizeof(T)*threadsPerBlock, partial_scan(args...))
+    @cuda(threads=threads_per_block,blocks=block_dims, shmem=sz, partial_scan(args...))
 
     # Recusively compute partial sum of partial sums
-    if length(Rdim) > threadsPerBlock
+    if length(Rdim) > threads_per_block
         accumulate!(f, aggregates, aggregates, dims=dims)
     end
 
     # Broadcast partial sums
     args = (f, output, aggregates, Rdim, Rpre, Rpost, Rother, init, neutral, Val(inclusive))
-    @cuda(threads=threadsPerBlock, blocks=block_dims, aggregate_partial_scan(args...))
+    @cuda(threads=threads_per_block, blocks=block_dims, aggregate_partial_scan(args...))
 
     unsafe_free!(aggregates)
     return output
@@ -210,9 +204,9 @@ Base._accumulate!(op, output::CuArray, input::CuArray, dims::Integer, init::Noth
     scan!(op, output, input; dims=dims)
 
 Base._accumulate!(op, output::CuArray, input::CuVector, dims::Nothing, init::Some) =
-    scan!(op, output, input; dims=1, init=init)
+    scan!(op, output, input; dims=1, init=something(init))
 
 Base._accumulate!(op, output::CuArray, input::CuArray, dims::Integer, init::Some) =
-    scan!(op, output, input; dims=dims, init=init)
+    scan!(op, output, input; dims=dims, init=something(init))
 
 Base.accumulate_pairwise!(op, result::CuVector, v::CuVector) = accumulate!(op, result, v)
