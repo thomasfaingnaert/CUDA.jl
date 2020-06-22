@@ -44,10 +44,10 @@ const scalar_types = Dict((Float16, Float16)=>Float32, (Float32, Float16)=>Float
 Base.cconvert(::Type{Ptr{cutensorTensorDescriptor_t}}, obj::CuTensorDescriptor) = obj.desc
 
 function elementwiseTrinary!(
-    alpha::Number, A::CuArray, Ainds::ModeType, opA::cutensorOperator_t,
-    beta::Number,  B::CuArray, Binds::ModeType, opB::cutensorOperator_t,
-    gamma::Number, C::CuArray{T}, Cinds::ModeType, opC::cutensorOperator_t,
-    D::CuArray{T}, Dinds::ModeType, opAB::cutensorOperator_t,
+    alpha::Number, A::AbstractArray, Ainds::ModeType, opA::cutensorOperator_t,
+    beta::Number,  B::AbstractArray, Binds::ModeType, opB::cutensorOperator_t,
+    gamma::Number, C::AbstractArray{T}, Cinds::ModeType, opC::cutensorOperator_t,
+    D::AbstractArray{T}, Dinds::ModeType, opAB::cutensorOperator_t,
     opABC::cutensorOperator_t; stream::CuStream=CuDefaultStream()) where {T}
 
     !is_unary(opA)    && throw(ArgumentError("opA must be a unary op!"))
@@ -106,9 +106,9 @@ function elementwiseTrinary!(
 end
 
 function elementwiseBinary!(
-    alpha::Number, A::CuArray, Ainds::ModeType, opA::cutensorOperator_t,
-    gamma::Number, C::CuArray{T}, Cinds::ModeType, opC::cutensorOperator_t,
-    D::CuArray{T}, Dinds::ModeType, opAC::cutensorOperator_t;
+    alpha::Number, A::AbstractArray, Ainds::ModeType, opA::cutensorOperator_t,
+    gamma::Number, C::AbstractArray{T}, Cinds::ModeType, opC::cutensorOperator_t,
+    D::AbstractArray{T}, Dinds::ModeType, opAC::cutensorOperator_t;
     stream::CuStream=CuDefaultStream()) where {T}
 
     !is_unary(opA)    && throw(ArgumentError("opA must be a unary op!"))
@@ -174,8 +174,8 @@ function elementwiseBinary!(
     return D
 end
 
-function permutation!(alpha::Number, A::CuArray, Ainds::ModeType,
-                      B::CuArray, Binds::ModeType; stream::CuStream=CuDefaultStream())
+function permutation!(alpha::Number, A::AbstractArray, Ainds::ModeType,
+                      B::AbstractArray, Binds::ModeType; stream::CuStream=CuDefaultStream())
     #!is_unary(opPsi)    && throw(ArgumentError("opPsi must be a unary op!"))
     descA = CuTensorDescriptor(A)
     descB = CuTensorDescriptor(B)
@@ -202,9 +202,9 @@ function permutation!(alpha::Number, A::Array, Ainds::ModeType,
 end
 
 function contraction!(
-    alpha::Number, A::CuArray, Ainds::ModeType, opA::cutensorOperator_t,
-                   B::CuArray, Binds::ModeType, opB::cutensorOperator_t,
-    beta::Number,  C::CuArray, Cinds::ModeType, opC::cutensorOperator_t,
+    alpha::Number, A::AbstractArray, Ainds::ModeType, opA::cutensorOperator_t,
+                   B::AbstractArray, Binds::ModeType, opB::cutensorOperator_t,
+    beta::Number,  C::AbstractArray, Cinds::ModeType, opC::cutensorOperator_t,
                                                 opOut::cutensorOperator_t;
     pref::cutensorWorksizePreference_t=CUTENSOR_WORKSPACE_RECOMMENDED,
     algo::cutensorAlgo_t=CUTENSOR_ALGO_DEFAULT, stream::CuStream=CuDefaultStream(),
@@ -261,9 +261,9 @@ function contraction!(
 end
 
 function plan_contraction(
-    A::CuArray, Ainds::ModeType, opA::cutensorOperator_t,
-    B::CuArray, Binds::ModeType, opB::cutensorOperator_t,
-    C::CuArray, Cinds::ModeType, opC::cutensorOperator_t,
+    A::AbstractArray, Ainds::ModeType, opA::cutensorOperator_t,
+    B::AbstractArray, Binds::ModeType, opB::cutensorOperator_t,
+    C::AbstractArray, Cinds::ModeType, opC::cutensorOperator_t,
                                                 opOut::cutensorOperator_t;
     pref::cutensorWorksizePreference_t=CUTENSOR_WORKSPACE_RECOMMENDED,
     algo::cutensorAlgo_t=CUTENSOR_ALGO_DEFAULT, compute_type::Type=eltype(C))
@@ -308,8 +308,8 @@ function plan_contraction(
 end
 
 function reduction!(
-    alpha::Number, A::CuArray, Ainds::ModeType, opA::cutensorOperator_t,
-    beta::Number,  C::CuArray, Cinds::ModeType, opC::cutensorOperator_t,
+    alpha::Number, A::AbstractArray, Ainds::ModeType, opA::cutensorOperator_t,
+    beta::Number,  C::AbstractArray, Cinds::ModeType, opC::cutensorOperator_t,
     opReduce::cutensorOperator_t; stream::CuStream=CuDefaultStream())
 
     !is_unary(opA)    && throw(ArgumentError("opA must be a unary op!"))
