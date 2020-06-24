@@ -174,8 +174,8 @@ function elementwiseBinary!(
     return D
 end
 
-function permutation!(alpha::Number, A::AbstractArray, Ainds::ModeType,
-                      B::AbstractArray, Binds::ModeType; stream::CuStream=CuDefaultStream())
+function permutation!(alpha::Number, A::CuArray, Ainds::ModeType,
+                      B::CuArray, Binds::ModeType; stream::CuStream=CuDefaultStream())
     #!is_unary(opPsi)    && throw(ArgumentError("opPsi must be a unary op!"))
     descA = CuTensorDescriptor(A)
     descB = CuTensorDescriptor(B)
@@ -241,25 +241,6 @@ function contraction!(
                    computeType)
     find = Ref(cutensorContractionFind_t(ntuple(i->0, Val(64))))
     cutensorInitContractionFind(handle(), find, algo)
-
-    if A isa Array
-        Mem.pin(A)
-        Aptr = Base.unsafe_convert(Ptr{Cvoid}, pointer(A))
-    else
-        Aptr = Base.unsafe_convert(CuPtr{Cvoid}, pointer(A))
-    end
-    if B isa Array
-        Mem.pin(B)
-        Bptr = Base.unsafe_convert(Ptr{Cvoid}, pointer(B))
-    else
-        Bptr = Base.unsafe_convert(CuPtr{Cvoid}, pointer(B))
-    end
-    if C isa Array
-        Mem.pin(C)
-        Cptr = Base.unsafe_convert(Ptr{Cvoid}, pointer(C))
-    else
-        Cptr = Base.unsafe_convert(CuPtr{Cvoid}, pointer(C))
-    end
     @workspace fallback=1<<27 size=@argout(
             cutensorContractionGetWorkspace(handle(), desc, find, pref,
                                             out(Ref{UInt64}(C_NULL)))
@@ -271,8 +252,8 @@ function contraction!(
                 plan_ref = Ref(plan)
             end
             cutensorContraction(handle(), plan_ref,
-                                scalar_type[convert(scalar_type, alpha)], Aptr, Bptr,
-                                scalar_type[convert(scalar_type, beta)],  Cptr, Cptr,
+                                scalar_type[convert(scalar_type, alpha)], A, B,
+                                scalar_type[convert(scalar_type, beta)],  C, C,
                                 workspace, sizeof(workspace), stream)
         end
     return C
