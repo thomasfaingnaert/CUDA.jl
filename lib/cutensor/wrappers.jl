@@ -202,9 +202,9 @@ function permutation!(alpha::Number, A::Array, Ainds::ModeType,
 end
 
 function contraction!(
-    alpha::Number, A::AbstractArray, Ainds::ModeType, opA::cutensorOperator_t,
-                   B::AbstractArray, Binds::ModeType, opB::cutensorOperator_t,
-    beta::Number,  C::AbstractArray, Cinds::ModeType, opC::cutensorOperator_t,
+    alpha::Number, A::Union{Array, CuArray}, Ainds::ModeType, opA::cutensorOperator_t,
+                   B::Union{Array, CuArray}, Binds::ModeType, opB::cutensorOperator_t,
+    beta::Number,  C::Union{Array, CuArray}, Cinds::ModeType, opC::cutensorOperator_t,
                                                 opOut::cutensorOperator_t;
     pref::cutensorWorksizePreference_t=CUTENSOR_WORKSPACE_RECOMMENDED,
     algo::cutensorAlgo_t=CUTENSOR_ALGO_DEFAULT, stream::CuStream=CuDefaultStream(),
@@ -242,6 +242,24 @@ function contraction!(
     find = Ref(cutensorContractionFind_t(ntuple(i->0, Val(64))))
     cutensorInitContractionFind(handle(), find, algo)
 
+    if A isa Array
+        Mem.pin(A)
+        Aptr = Base.unsafe_convert(Ptr{Cvoid}, pointer(A))
+    else
+        Aptr = Base.unsafe_convert(CuPtr{Cvoid}, pointer(A))
+    end
+    if B isa Array
+        Mem.pin(B)
+        Bptr = Base.unsafe_convert(Ptr{Cvoid}, pointer(B))
+    else
+        Bptr = Base.unsafe_convert(CuPtr{Cvoid}, pointer(B))
+    end
+    if C isa Array
+        Mem.pin(C)
+        Cptr = Base.unsafe_convert(Ptr{Cvoid}, pointer(C))
+    else
+        Cptr = Base.unsafe_convert(CuPtr{Cvoid}, pointer(C))
+    end
     @workspace fallback=1<<27 size=@argout(
             cutensorContractionGetWorkspace(handle(), desc, find, pref,
                                             out(Ref{UInt64}(C_NULL)))
@@ -253,8 +271,8 @@ function contraction!(
                 plan_ref = Ref(plan)
             end
             cutensorContraction(handle(), plan_ref,
-                                scalar_type[convert(scalar_type, alpha)], A, B,
-                                scalar_type[convert(scalar_type, beta)],  C, C,
+                                scalar_type[convert(scalar_type, alpha)], Aptr, Bptr,
+                                scalar_type[convert(scalar_type, beta)],  Cptr, Cptr,
                                 workspace, sizeof(workspace), stream)
         end
     return C
