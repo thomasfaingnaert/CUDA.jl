@@ -165,7 +165,8 @@ debug:
                               Pkg.instantiate();
                               Pkg.build();
                               Pkg.test(; coverage=true);'
-
+  variables:
+    CUTENSOR_LOGINFO_DBG: 1
 
 # other tasks
 
