@@ -618,7 +618,7 @@ end
             mD = reshape(permutedims(D, ipC), (loA, loB))
             @test mD ≈ α * mA * mB + β * mC rtol=compute_rtol
             # with CuTensor objects
-            if eltyCompute != Float32 && eltyC != Float16
+            #=if eltyCompute != Float32 && eltyC != Float16
                 ctA = CuTensor(dA, indsA)
                 ctB = CuTensor(dB, indsB)
                 ctC = CuTensor(dC, indsC)
@@ -631,7 +631,7 @@ end
                 pC2 = convert.(Int, indexin(convert.(Char, C2inds), [indsoA; indsoB]))
                 mC = reshape(permutedims(C2, invperm(pC2)), (loA, loB))
                 @test mC ≈ mA * mB
-            end
+            end=#
             # with conjugation flag for complex arguments
             if !((NoA, NoB, Nc) in ((1,1,3), (1,2,3), (3,1,2)))
             # not supported for these specific cases for unknown reason

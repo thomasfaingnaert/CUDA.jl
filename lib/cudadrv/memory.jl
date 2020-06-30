@@ -615,7 +615,7 @@ end
 
 ## memory pinning
 const __pinned_memory = Dict{Ptr, WeakRef}()
-function pin(a::Array, flags=0)
+function pin(a::Base.Array, flags=0)
     # use pointer instead of objectid?
     ptr = pointer(a)
     if haskey(__pinned_memory, ptr) && __pinned_memory[ptr].value !== nothing
