@@ -66,6 +66,8 @@ cuda:10.1:
     CI_THOROUGH: 'true'
     JULIA_CUDA_VERSION: '10.1'
     JULIA_CUDA_USE_BINARYBUILDER: 'true'
+    CUTENSOR_LOGINFO_DBG: 'true'
+    CUTENSOR_DEBUG: 'true'
   tags:
     - nvidia
     - latest
