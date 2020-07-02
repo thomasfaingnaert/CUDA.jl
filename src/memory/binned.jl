@@ -52,7 +52,7 @@ Base.pointer(block::Block) = block.ptr
 Base.sizeof(block::Block) = block.sz
 
 @inline function actual_alloc(ctx, sz)
-    @assert isvalid(ctx)
+    @assert isvalid(ctx) "Cannot allocate on invalid context $ctx (CuCurrentContext()=$(CuCurrentContext()), context()=$(context())"
     ptr = context!(ctx) do
         CUDA.actual_alloc(sz)
     end
