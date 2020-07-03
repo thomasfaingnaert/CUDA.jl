@@ -482,12 +482,12 @@ end
 
 @testset "Contraction" begin
     eltypes = ( (Float32, Float32, Float32, Float32),
-                (Float32, Float32, Float32, Float16),
+                #(Float32, Float32, Float32, Float16),
                 (ComplexF32, ComplexF32, ComplexF32, ComplexF32),
                 (Float64, Float64, Float64, Float64),
-                (Float64, Float64, Float64, Float32),
+                #(Float64, Float64, Float64, Float32),
                 (ComplexF64, ComplexF64, ComplexF64, ComplexF64),
-                (ComplexF64, ComplexF64, ComplexF64, ComplexF32)
+                #(ComplexF64, ComplexF64, ComplexF64, ComplexF32)
                 )
 
     @testset for NoA=1:3, NoB=1:3, Nc=1:3
