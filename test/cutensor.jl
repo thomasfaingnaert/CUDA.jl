@@ -71,7 +71,7 @@ end
             dD = CUTENSOR.elementwiseBinary!(1, dA, 1:N, opA, 1, dC, p, opC, dD, p, opAC)
             D = collect(dD)
             @test D ≈ permutedims(A, p) .+ C
-            Dint = similar(C)
+            Dint = zeros(C)
             CUDA.Mem.pin(Dint)
             Dint = CUTENSOR.elementwiseBinary!(1, A, 1:N, opA, 1, C, p, opC, Dint, p, opAC)
             @test Dint ≈ permutedims(A, p) .+ C
@@ -82,7 +82,7 @@ end
                                                 dD, indsC, opAC)
             D = collect(dD)
             @test D ≈ permutedims(A, p) .* C
-            Dmult = similar(C)
+            Dmult = zeros(C)
             CUDA.Mem.pin(Dmult)
             Dmult = CUTENSOR.elementwiseBinary!(1, A, indsA, opA, 1, C, indsC, opC,
                                                 Dmult, indsC, opAC)
