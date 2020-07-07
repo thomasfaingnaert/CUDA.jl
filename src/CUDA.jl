@@ -89,6 +89,7 @@ export NVML, has_nvml
 
 # tiling and matmul
 include("$root/src/device/tiling.jl")
+include("$root/src/device/matmul_kernels.jl")
 
 include("$root/src/deprecated.jl")
 
