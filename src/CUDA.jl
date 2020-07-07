@@ -87,6 +87,9 @@ include("$root/lib/nvml/NVML.jl")
 const has_nvml = NVML.has_nvml
 export NVML, has_nvml
 
+# tiling and matmul
+include("$root/src/device/tiling.jl")
+
 include("$root/src/deprecated.jl")
 
 end
