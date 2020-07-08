@@ -71,7 +71,7 @@ end
             dD = CUTENSOR.elementwiseBinary!(1, dA, 1:N, opA, 1, dC, p, opC, dD, p, opAC)
             D = collect(dD)
             @test D ≈ permutedims(A, p) .+ C
-            Dint = zeros(C)
+            Dint = zeros(eltyC, dimsC...)
             CUDA.Mem.pin(Dint)
             Dint = CUTENSOR.elementwiseBinary!(1, A, 1:N, opA, 1, C, p, opC, Dint, p, opAC)
             @test Dint ≈ permutedims(A, p) .+ C
@@ -82,7 +82,7 @@ end
                                                 dD, indsC, opAC)
             D = collect(dD)
             @test D ≈ permutedims(A, p) .* C
-            Dmult = zeros(C)
+            Dmult = zeros(eltyC, dimsC...)
             CUDA.Mem.pin(Dmult)
             Dmult = CUTENSOR.elementwiseBinary!(1, A, indsA, opA, 1, C, indsC, opC,
                                                 Dmult, indsC, opAC)
@@ -184,7 +184,7 @@ end
             dC = CUTENSOR.permutation!(one(eltyA), dA, indsA, dC, indsC)
             C  = collect(dC)
             @test C == permutedims(A, p) # exact equality
-            Csimple = similar(A, eltyC, dimsC...)
+            Csimple = zeros(eltyC, dimsC...)
             CUDA.Mem.pin(Csimple)
             Csimple = CUTENSOR.permutation!(one(eltyA), A, indsA, Csimple, indsC)
             synchronize()
@@ -196,7 +196,7 @@ end
             C  = collect(dC)
             @test C ≈ α * permutedims(A, p) # approximate, floating point rounding
 
-            Cscalar = similar(A, eltyC, dimsC...)
+            Cscalar = zeros(eltyC, dimsC...)
             CUDA.Mem.pin(Cscalar)
             Cscalar = CUTENSOR.permutation!(α, A, indsA, Cscalar, indsC)
             synchronize()
