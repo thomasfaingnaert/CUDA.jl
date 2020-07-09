@@ -74,6 +74,7 @@ end
             Dint = zeros(eltyC, dimsC...)
             CUDA.Mem.pin(Dint)
             Dint = CUTENSOR.elementwiseBinary!(1, A, 1:N, opA, 1, C, p, opC, Dint, p, opAC)
+            synchronize()
             @test Dint ≈ permutedims(A, p) .+ C
 
             # multiplication as binary operator
@@ -451,6 +452,7 @@ end
             @test reshape(C, (dimsC..., ones(Int,NA-NC)...)) ≈
                 sum(permutedims(A, p); dims = ((NC+1:NA)...,))
             Cinteger = CUTENSOR.reduction!(1, A, collect(1:NA), opA, 0, Cinteger, p[1:NC], opC, opReduce)
+            synchronize()
             @test reshape(Cinteger, (dimsC..., ones(Int,NA-NC)...)) ≈
                 sum(permutedims(A, p); dims = ((NC+1:NA)...,))
 
@@ -464,6 +466,7 @@ end
             @test reshape(C, (dimsC..., ones(Int,NA-NC)...)) ≈
                 prod(permutedims(A, p); dims = ((NC+1:NA)...,)) atol=eps(Float16) rtol=Base.rtoldefault(Float16)
             Cmult = CUTENSOR.reduction!(1, A, indsA, opA, 0, Cmult, indsC, opC, opReduce)
+            synchronize()
             @test reshape(Cmult, (dimsC..., ones(Int,NA-NC)...)) ≈
                 prod(permutedims(A, p); dims = ((NC+1:NA)...,)) atol=eps(Float16) rtol=Base.rtoldefault(Float16)
             # NOTE: this test often yields values close to 0 that do not compare approximately
