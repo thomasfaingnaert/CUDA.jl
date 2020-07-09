@@ -86,6 +86,7 @@ end
             CUDA.Mem.pin(Dmult)
             Dmult = CUTENSOR.elementwiseBinary!(1, A, indsA, opA, 1, C, indsC, opC,
                                                 Dmult, indsC, opAC)
+            synchronize()
             @test Dmult ≈ permutedims(A, p) .* C
 
             # with non-trivial coefficients and conjugation
@@ -437,6 +438,7 @@ end
             Csimple = zeros(eltyC, dimsC...)
             CUDA.Mem.pin(Csimple)
             Csimple = CUTENSOR.reduction!(1, A, indsA, opA, 0, Csimple, indsC, opC, opReduce)
+            synchronize()
             @test reshape(Csimple, (dimsC..., ones(Int,NA-NC)...)) ≈
                 sum(permutedims(A, p); dims = ((NC+1:NA)...,))
 
@@ -444,6 +446,7 @@ end
             Cinteger = zeros(eltyC, dimsC...)
             CUDA.Mem.pin(Cinteger)
             dC = CUTENSOR.reduction!(1, dA, collect(1:NA), opA, 0, dC, p[1:NC], opC, opReduce)
+            synchronize()
             C = collect(dC)
             @test reshape(C, (dimsC..., ones(Int,NA-NC)...)) ≈
                 sum(permutedims(A, p); dims = ((NC+1:NA)...,))
@@ -456,6 +459,7 @@ end
             Cmult = zeros(eltyC, dimsC...)
             CUDA.Mem.pin(Cmult)
             dC = CUTENSOR.reduction!(1, dA, indsA, opA, 0, dC, indsC, opC, opReduce)
+            synchronize()
             C = collect(dC)
             @test reshape(C, (dimsC..., ones(Int,NA-NC)...)) ≈
                 prod(permutedims(A, p); dims = ((NC+1:NA)...,)) atol=eps(Float16) rtol=Base.rtoldefault(Float16)
