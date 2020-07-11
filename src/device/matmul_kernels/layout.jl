@@ -48,7 +48,7 @@ struct AlignedColMajor{T} <: LayoutBase{T} end
             linear_base = linearise(t.base, Base.size(workspace))
             linear_offset = linearise(t.offset, Base.size(workspace))
 
-            @inbounds res[i, j] = unsafe_load(pointer(workspace, linear_base), linear_offset)
+            @inbounds res[i, j] = unsafe_load(pointer(workspace, linear_base), linear_offset, Val(sizeof(T)))
         end
     end
 
@@ -63,7 +63,7 @@ end
             linear_base = linearise(t.base, Base.size(workspace))
             linear_offset = linearise(t.offset, Base.size(workspace))
 
-            @inbounds unsafe_store!(pointer(workspace, linear_base), value[i, j], linear_offset)
+            @inbounds unsafe_store!(pointer(workspace, linear_base), value[i, j], linear_offset, Val(sizeof(T)))
         end
     end
 end
