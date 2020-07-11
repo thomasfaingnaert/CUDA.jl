@@ -6,6 +6,32 @@ using CUDA.Tiling
 using GPUifyLoops
 using StaticArrays
 
+# ----------------------
+# Explicit vectorisation
+# ----------------------
+
+struct Vec{N, T} end
+
+@inline @generated function vloada(::Type{Vec{N, T}}, ptr::Core.LLVMPtr{T, AS}, i::Integer = 1) where {N, T, AS}
+    alignment = sizeof(T) * N
+    vec_len = (sizeof(T) * N) ÷ sizeof(Float32)
+
+    return quote
+        vec_ptr = Base.bitcast(Core.LLVMPtr{NTuple{$vec_len, VecElement{Float32}}, AS}, ptr)
+        return unsafe_load(vec_ptr, (i-1) ÷ N + 1, Val($alignment))
+    end
+end
+
+@inline @generated function vstorea!(::Type{Vec{N, T}}, ptr::Core.LLVMPtr{T, AS}, x, i::Integer = 1) where {N, T, AS}
+    alignment = sizeof(T) * N
+    vec_len = (sizeof(T) * N) ÷ sizeof(Float32)
+
+    return quote
+        vec_ptr = Base.bitcast(Core.LLVMPtr{NTuple{$vec_len, VecElement{Float32}}, AS}, ptr)
+        return unsafe_store!(vec_ptr, x, (i-1) ÷ N + 1, Val($alignment))
+    end
+end
+
 # -----------
 # Layout base
 # -----------
