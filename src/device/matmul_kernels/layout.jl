@@ -76,7 +76,7 @@ struct AlignedColMajor{T} <: LayoutBase{T} end
             linear_base = linearise(t.base, Base.size(workspace))
             linear_offset = linearise(t.offset, Base.size(workspace))
 
-            @inbounds res[i, j] = vloada(Vec{vec_len, T}, pointer(workspace, linear_base), linear_offset)
+            @inbounds res[i, j] = vloada(Vec{vec_len, T}, pointer(workspace), linear_base + linear_offset - 1)
         end
     end
 
@@ -93,7 +93,7 @@ end
             linear_base = linearise(t.base, Base.size(workspace))
             linear_offset = linearise(t.offset, Base.size(workspace))
 
-            @inbounds vstorea!(Vec{vec_len, T}, pointer(workspace, linear_base), value[i, j], linear_offset)
+            @inbounds vstorea!(Vec{vec_len, T}, pointer(workspace), value[i, j], linear_base + linear_offset - 1)
         end
     end
 end
